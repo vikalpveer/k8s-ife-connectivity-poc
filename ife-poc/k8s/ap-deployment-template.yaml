@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ap-__AP_TYPE__
+  namespace: aircraft-__AIRCRAFT_ID__
+  labels:
+    app: ap-simulator
+    ap-type: __AP_TYPE__
+    aircraft-id: __AIRCRAFT_ID__
+    airline: __AIRLINE__
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ap-simulator
+      ap-type: __AP_TYPE__
+      aircraft-id: __AIRCRAFT_ID__
+  template:
+    metadata:
+      labels:
+        app: ap-simulator
+        ap-type: __AP_TYPE__
+        aircraft-id: __AIRCRAFT_ID__
+        airline: __AIRLINE__
+    spec:
+      # Share network namespace between containers
+      shareProcessNamespace: true
+      
+      containers:
+      # Main AP simulator container
+      - name: ap-simulator
+        image: ap-simulator:latest
+        imagePullPolicy: Never
+        env:
+        - name: AP_ID
+          value: "__AP_ID__"
+        - name: AIRCRAFT_ID
+          value: "__AIRCRAFT_ID__"
+        - name: AIRLINE
+          value: "__AIRLINE__"
+        - name: AP_TYPE
+          value: "__AP_TYPE__"
+        - name: PREFERRED_REGION
+          value: "__PREFERRED_REGION__"
+        - name: CONTROLLER_US_EAST
+          value: "http://controller-us-east:8081"
+        - name: CONTROLLER_US_WEST
+          value: "http://controller-us-west:8082"
+        - name: HEARTBEAT_INTERVAL
+          value: "10"
+        - name: CONFIG_POLL_INTERVAL
+          value: "15"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+      
+      # Network shaping sidecar
+      - name: network-shaper
+        image: network-shaper:latest
+        imagePullPolicy: Never
+        env:
+        - name: NETWORK_PROFILE
+          value: "__NETWORK_PROFILE__"
+        - name: INTERFACE
+          value: "eth0"
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          privileged: false
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "10m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+      
+      restartPolicy: Always
